@@ -163,11 +163,23 @@
     <div class="sec">Presets</div>
     <input type="text" class="preset-input" id="preset-name" placeholder="Preset name...">
     <button class="preset-save-btn" onclick="savePreset()">SAVE CURRENT</button>
-    <div id="presets-list"></div>
+   <div id="presets-list"></div>
+
+    <div class="sec">Support</div>
+    <div style="background:var(--surface);border-radius:8px;padding:12px;border:1px solid var(--border);text-align:center;">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">If you enjoy StarkCrosshair,<br>Support Me</div>
+      <button onclick="openDonate()" style="background:#003087;border:none;border-radius:8px;padding:10px 20px;cursor:pointer;font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:600;color:white;letter-spacing:1px;width:100%;">
+        ❤️ Donate via PayPal
+      </button>
+    </div>
   </div>
 
  <script>
     const { ipcRenderer } = require('electron')
+    const { shell } = require('electron')
+    function openDonate() {
+      shell.openExternal('https://paypal.me/iStarkye')
+    }
     let S = { style: 'cross', color: '#ffffff', gap: 3, length: 6, thickness: 2, opacity: 100, visible: true }
 
     function draw() {
