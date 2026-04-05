@@ -12,3 +12,7 @@ A customizable crosshair overlay app for gamers built with Electron.
 
 ## Download
 Check the Releases section to download the latest .exe
+
+⚠️ Windows may show a SmartScreen warning.
+Click "More info" then "Run anyway" — this is safe!
+This happens because the app is new and not yet signed.
