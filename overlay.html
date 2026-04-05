@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    * { margin: 0; padding: 0; }
+    body { background: transparent; overflow: hidden; }
+    canvas { position: fixed; top: 0; left: 0; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <script>
+    const { ipcRenderer } = require('electron')
+    const canvas = document.getElementById('c')
+    canvas.width = window.screen.width
+    canvas.height = window.screen.height
+    const ctx = canvas.getContext('2d')
+    let S = { style: 'cross', color: '#ffffff', gap: 5, length: 6, thickness: 2, opacity: 100 }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      const cx = canvas.width / 2, cy = canvas.height / 2
+      ctx.globalAlpha = S.opacity / 100
+      ctx.strokeStyle = S.color
+      ctx.fillStyle = S.color
+     ctx.lineWidth = S.thickness
+      const gap = parseInt(S.gap, 10)
+      const len = parseInt(S.length, 10)
+      const thk = parseInt(S.thickness, 10)
+
+    if (S.style === 'cross') {
+        ctx.lineCap = 'butt'
+        ctx.beginPath(); ctx.moveTo(cx-gap-len, cy); ctx.lineTo(cx-gap, cy); ctx.stroke()
+        ctx.beginPath(); ctx.moveTo(cx+gap, cy); ctx.lineTo(cx+gap+len, cy); ctx.stroke()
+        ctx.beginPath(); ctx.moveTo(cx, cy-gap-len); ctx.lineTo(cx, cy-gap); ctx.stroke()
+        ctx.beginPath(); ctx.moveTo(cx, cy+gap); ctx.lineTo(cx, cy+gap+len); ctx.stroke()
+      } else if (S.style === 'crossdot') {
+        ctx.lineCap = 'butt'
+        ctx.beginPath(); ctx.moveTo(cx-gap-len, cy); ctx.lineTo(cx-gap, cy); ctx.stroke()
+        ctx.beginPath(); ctx.moveTo(cx+gap, cy); ctx.lineTo(cx+gap+len, cy); ctx.stroke()
+        ctx.beginPath(); ctx.moveTo(cx, cy-gap-len); ctx.lineTo(cx, cy-gap); ctx.stroke()
+        ctx.beginPath(); ctx.moveTo(cx, cy+gap); ctx.lineTo(cx, cy+gap+len); ctx.stroke()
+        ctx.beginPath(); ctx.arc(cx, cy, thk + 2, 0, Math.PI * 2); ctx.fill()
+
+      } else if (S.style === 'dot') {
+        ctx.beginPath(); ctx.arc(cx, cy, S.thickness * 2, 0, Math.PI * 2); ctx.fill()
+
+      } else if (S.style === 'circle') {
+        ctx.beginPath(); ctx.arc(cx, cy, S.length + S.gap, 0, Math.PI * 2); ctx.stroke()
+        ctx.beginPath(); ctx.arc(cx, cy, S.thickness, 0, Math.PI * 2); ctx.fill()
+
+      } else if (S.style === 'corner') {
+        const g = S.gap + S.length, l = S.length
+        ctx.lineCap = 'square'
+        ctx.beginPath(); ctx.moveTo(cx-g, cy-g+l); ctx.lineTo(cx-g, cy-g); ctx.lineTo(cx-g+l, cy-g); ctx.stroke()
+        ctx.beginPath(); ctx.moveTo(cx+g, cy-g+l); ctx.lineTo(cx+g, cy-g); ctx.lineTo(cx+g-l, cy-g); ctx.stroke()
+        ctx.beginPath(); ctx.moveTo(cx-g, cy+g-l); ctx.lineTo(cx-g, cy+g); ctx.lineTo(cx-g+l, cy+g); ctx.stroke()
+        ctx.beginPath(); ctx.moveTo(cx+g, cy+g-l); ctx.lineTo(cx+g, cy+g); ctx.lineTo(cx+g-l, cy+g); ctx.stroke()
+        ctx.beginPath(); ctx.arc(cx, cy, S.thickness + 2, 0, Math.PI * 2); ctx.fill()
+
+      } else if (S.style === 'star') {
+        const angles = [270, 30, 150]
+        angles.forEach(deg => {
+          const rad = deg * Math.PI / 180
+          ctx.beginPath()
+          ctx.moveTo(cx + Math.cos(rad) * S.gap, cy + Math.sin(rad) * S.gap)
+          ctx.lineTo(cx + Math.cos(rad) * (S.gap + S.length * 3), cy + Math.sin(rad) * (S.gap + S.length * 3))
+          ctx.stroke()
+        })
+        ctx.beginPath(); ctx.arc(cx, cy, S.thickness * 2, 0, Math.PI * 2); ctx.fill()
+      }
+    }
+ draw()
+ ipcRenderer.on('settings-update', (e, data) => {
+  S = {
+    style:     String(data.style),
+    color:     String(data.color),
+    gap:       parseInt(data.gap, 10),
+    length:    parseInt(data.length, 10),
+    thickness: parseInt(data.thickness, 10),
+    opacity:   parseInt(data.opacity, 10)
+  }
+  draw()
+})
+  </script>
+</body>
+</html>

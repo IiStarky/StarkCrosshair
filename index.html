@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --bg: #1e1f22; --surface: #2b2d31; --surface2: #313338; --accent: #00d4ff; --accent-dim: rgba(0,212,255,0.12); --text: #dbdee1; --muted: #949ba4; --border: rgba(255,255,255,0.06); }
+    body { background: var(--bg); color: var(--text); font-family: 'Rajdhani', sans-serif; height: 100vh; overflow: hidden; user-select: none; }
+    .titlebar { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--border); -webkit-app-region: drag; }
+   .titlebar-title { font-size: 12px; font-weight: 600; letter-spacing: 1.5px; color: var(--muted); }
+    .controls { display: flex; gap: 6px; -webkit-app-region: no-drag; }
+    .dot { width: 12px; height: 12px; border-radius: 50%; cursor: pointer; border: none; }
+    .dot-min { background: #f4bf4f; }
+    .dot-close { background: #ed6a5e; }
+    .preview { background: #111213; margin: 14px; border-radius: 8px; height: 110px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); position: relative; overflow: hidden; }
+    .preview::before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px); background-size: 20px 20px; }
+    #prev-canvas { position: relative; z-index: 1; }
+    .content { padding: 0 14px 14px; overflow-y: auto; height: calc(100vh - 185px); }
+    .sec { font-size: 10px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: #5c6068; margin: 14px 0 10px; }
+    .style-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .stab { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 4px; cursor: pointer; text-align: center; color: var(--muted); font-family: 'Rajdhani', sans-serif; font-size: 12px; font-weight: 500; letter-spacing: 0.5px; transition: all 0.15s; }
+    .stab svg { display: block; margin: 0 auto 4px; }
+    .stab.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+    .swatches { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 8px; }
+    .sw { width: 24px; height: 24px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: all 0.12s; }
+    .sw.active { border-color: white; transform: scale(1.2); }
+    .custom-color { display: flex; align-items: center; gap: 8px; }
+    input[type=color] { width: 34px; height: 26px; border: 1px solid var(--border); background: var(--surface2); border-radius: 6px; cursor: pointer; padding: 2px; }
+    .custom-label { font-size: 12px; color: var(--muted); }
+    .slider-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .sl-label { font-size: 13px; color: var(--muted); width: 72px; flex-shrink: 0; }
+    .sl-wrap { flex: 1; }
+    input[type=range] { width: 100%; height: 3px; -webkit-appearance: none; background: var(--surface2); border-radius: 2px; outline: none; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 13px; height: 13px; border-radius: 50%; background: var(--accent); cursor: pointer; box-shadow: 0 0 0 3px rgba(0,212,255,0.2); }
+    .sl-val { font-size: 12px; font-weight: 600; color: var(--accent); width: 34px; text-align: right; flex-shrink: 0; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; background: var(--surface); border-radius: 8px; padding: 11px 13px; margin-top: 6px; }
+    .tgl-label { font-size: 14px; font-weight: 500; }
+    .toggle { width: 38px; height: 20px; background: var(--surface2); border-radius: 10px; position: relative; cursor: pointer; transition: background 0.2s; border: 1px solid var(--border); }
+    .toggle.on { background: var(--accent); border-color: var(--accent); }
+    .toggle::after { content: ''; position: absolute; width: 14px; height: 14px; background: white; border-radius: 50%; top: 2px; left: 2px; transition: left 0.2s; }
+    .toggle.on::after { left: 20px; }
+    .preset-input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; color: var(--text); font-family: 'Rajdhani', sans-serif; font-size: 13px; outline: none; margin-bottom: 8px; }
+    .preset-input:focus { border-color: var(--accent); }
+    .preset-save-btn { width: 100%; background: var(--accent-dim); border: 1px solid var(--accent); color: var(--accent); border-radius: 8px; padding: 8px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 1px; margin-bottom: 10px; }
+    .preset-item { display: flex; align-items: center; justify-content: space-between; background: var(--surface); border-radius: 8px; padding: 10px 12px; margin-bottom: 6px; border: 1px solid var(--border); }
+    .preset-info { flex: 1; }
+    .preset-name { font-size: 13px; font-weight: 600; color: var(--text); }
+    .preset-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .preset-actions { display: flex; gap: 6px; align-items: center; }
+    .preset-color-dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--border); flex-shrink: 0; }
+    .btn-load { background: var(--accent-dim); border: 1px solid var(--accent); color: var(--accent); border-radius: 6px; padding: 4px 8px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-size: 11px; font-weight: 600; }
+    .btn-del { background: rgba(237,106,94,0.12); border: 1px solid #ed6a5e; color: #ed6a5e; border-radius: 6px; padding: 4px 8px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-size: 11px; font-weight: 600; }
+    .no-presets { font-size: 12px; color: var(--muted); text-align: center; padding: 10px 0; }
+  </style>
+</head>
+<body>
+  <div class="titlebar">
+    <span class="titlebar-title">StarkCrosshair</span>
+    <div class="controls">
+      <button class="dot dot-min" onclick="ipcRenderer.send('minimize-app')"></button>
+      <button class="dot dot-close" onclick="ipcRenderer.send('close-app')"></button>
+    </div>
+  </div>
+
+  <div class="preview">
+    <canvas id="prev-canvas" width="200" height="110"></canvas>
+  </div>
+
+  <div class="content">
+    <div class="sec">Style</div>
+    <div class="style-tabs">
+      <div class="stab active" onclick="setStyle('cross', this)">
+        <svg width="26" height="26" viewBox="0 0 26 26" fill="none"><line x1="3" y1="13" x2="9" y2="13" stroke="currentColor" stroke-width="2"/><line x1="17" y1="13" x2="23" y2="13" stroke="currentColor" stroke-width="2"/><line x1="13" y1="3" x2="13" y2="9" stroke="currentColor" stroke-width="2"/><line x1="13" y1="17" x2="13" y2="23" stroke="currentColor" stroke-width="2"/></svg>
+        Cross
+      </div>
+      <div class="stab" onclick="setStyle('crossdot', this)">
+        <svg width="26" height="26" viewBox="0 0 26 26" fill="none"><line x1="3" y1="13" x2="9" y2="13" stroke="currentColor" stroke-width="2"/><line x1="17" y1="13" x2="23" y2="13" stroke="currentColor" stroke-width="2"/><line x1="13" y1="3" x2="13" y2="9" stroke="currentColor" stroke-width="2"/><line x1="13" y1="17" x2="13" y2="23" stroke="currentColor" stroke-width="2"/><circle cx="13" cy="13" r="2" fill="currentColor"/></svg>
+        Cross+
+      </div>
+      <div class="stab" onclick="setStyle('dot', this)">
+        <svg width="26" height="26" viewBox="0 0 26 26" fill="none"><circle cx="13" cy="13" r="4" fill="currentColor"/></svg>
+        Dot
+      </div>
+      <div class="stab" onclick="setStyle('circle', this)">
+        <svg width="26" height="26" viewBox="0 0 26 26" fill="none"><circle cx="13" cy="13" r="8" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="13" cy="13" r="1.5" fill="currentColor"/></svg>
+        Circle
+      </div>
+      <div class="stab" onclick="setStyle('corner', this)">
+        <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+          <polyline points="4,9 4,4 9,4" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="miter" stroke-linecap="square"/>
+          <polyline points="17,4 22,4 22,9" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="miter" stroke-linecap="square"/>
+          <polyline points="4,17 4,22 9,22" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="miter" stroke-linecap="square"/>
+          <polyline points="17,22 22,22 22,17" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="miter" stroke-linecap="square"/>
+          <circle cx="13" cy="13" r="1.5" fill="currentColor"/>
+        </svg>
+        Corner
+      </div>
+      <div class="stab" onclick="setStyle('star', this)">
+        <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+          <line x1="13" y1="13" x2="13" y2="3" stroke="currentColor" stroke-width="2"/>
+          <line x1="13" y1="13" x2="21.6" y2="18" stroke="currentColor" stroke-width="2"/>
+          <line x1="13" y1="13" x2="4.4" y2="18" stroke="currentColor" stroke-width="2"/>
+          <circle cx="13" cy="13" r="2" fill="currentColor"/>
+        </svg>
+        Star
+      </div>
+    </div>
+
+    <div class="sec">Color</div>
+    <div class="swatches">
+      <div class="sw active" style="background:#ffffff" onclick="setColor('#ffffff',this)"></div>
+      <div class="sw" style="background:#ff4655" onclick="setColor('#ff4655',this)"></div>
+      <div class="sw" style="background:#00d4ff" onclick="setColor('#00d4ff',this)"></div>
+      <div class="sw" style="background:#00ff88" onclick="setColor('#00ff88',this)"></div>
+      <div class="sw" style="background:#ffcc00" onclick="setColor('#ffcc00',this)"></div>
+      <div class="sw" style="background:#ff6b35" onclick="setColor('#ff6b35',this)"></div>
+      <div class="sw" style="background:#a855f7" onclick="setColor('#a855f7',this)"></div>
+      <div class="sw" style="background:#ff69b4" onclick="setColor('#ff69b4',this)"></div>
+    </div>
+    <div class="custom-color">
+      <input type="color" id="colorPicker" value="#ffffff" oninput="setColorCustom(this.value)">
+      <span class="custom-label">Custom color</span>
+    </div>
+
+   <div class="sec">Size</div>
+    <div class="slider-row">
+      <span class="sl-label">Gap</span>
+     <div class="sl-wrap"><input type="range" id="s-gap" min="0" max="25" value="3" oninput="upd()"></div>
+      <span class="sl-val" id="v-gap">3</span>
+    </div>
+    <div class="slider-row">
+      <span class="sl-label">Length</span>
+      <div class="sl-wrap"><input type="range" id="s-len" min="2" max="15" value="6" oninput="upd()"></div>
+      <span class="sl-val" id="v-len">6</span>
+    </div>
+    <div class="slider-row">
+      <span class="sl-label">Thickness</span>
+      <div class="sl-wrap"><input type="range" id="s-thk" min="1" max="10" value="2" oninput="upd()"></div>
+      <span class="sl-val" id="v-thk">2</span>
+    </div>
+    <div class="slider-row">
+      <span class="sl-label">Opacity</span>
+      <div class="sl-wrap"><input type="range" id="s-opa" min="10" max="100" value="100" oninput="upd()"></div>
+      <span class="sl-val" id="v-opa">100%</span>
+    </div>
+
+    <div class="toggle-row">
+      <span class="tgl-label">Show Crosshair (F3)</span>
+      <div class="toggle on" id="toggle" onclick="toggleCrosshair()"></div>
+    </div>
+<div class="sec">Hotkeys</div>
+    <div style="background:var(--surface);border-radius:8px;padding:10px 12px;margin-bottom:6px;border:1px solid var(--border);">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <span style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:2px 8px;font-size:12px;font-weight:600;color:var(--accent);letter-spacing:1px;">F2</span>
+        <span style="font-size:12px;color:var(--muted);">Cycle through saved presets</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:2px 8px;font-size:12px;font-weight:600;color:var(--accent);letter-spacing:1px;">F3</span>
+        <span style="font-size:12px;color:var(--muted);">Toggle crosshair on / off</span>
+      </div>
+    </div>
+    <div class="sec">Presets</div>
+    <input type="text" class="preset-input" id="preset-name" placeholder="Preset name...">
+    <button class="preset-save-btn" onclick="savePreset()">SAVE CURRENT</button>
+    <div id="presets-list"></div>
+  </div>
+
+ <script>
+    const { ipcRenderer } = require('electron')
+    let S = { style: 'cross', color: '#ffffff', gap: 3, length: 6, thickness: 2, opacity: 100, visible: true }
+
+    function draw() {
+      const c = document.getElementById('prev-canvas'), ctx = c.getContext('2d')
+      ctx.clearRect(0, 0, c.width, c.height)
+      const cx = c.width / 2, cy = c.height / 2
+      const gap = parseInt(S.gap, 10)
+      const len = parseInt(S.length, 10)
+      const thk = parseInt(S.thickness, 10)
+      const opa = parseInt(S.opacity, 10)
+      ctx.globalAlpha = opa / 100
+      ctx.strokeStyle = S.color
+      ctx.fillStyle = S.color
+      ctx.lineWidth = thk
+
+   if (S.style === 'cross') {
+        ctx.lineCap = 'butt'
+        ctx.beginPath(); ctx.moveTo(cx-gap-len, cy); ctx.lineTo(cx-gap, cy); ctx.stroke()
+        ctx.beginPath(); ctx.moveTo(cx+gap, cy); ctx.lineTo(cx+gap+len, cy); ctx.stroke()
+        ctx.beginPath(); ctx.moveTo(cx, cy-gap-len); ctx.lineTo(cx, cy-gap); ctx.stroke()
+        ctx.beginPath(); ctx.moveTo(cx, cy+gap); ctx.lineTo(cx, cy+gap+len); ctx.stroke()
+      } else if (S.style === 'crossdot') {
+        ctx.lineCap = 'butt'
+        ctx.beginPath(); ctx.moveTo(cx-gap-len, cy); ctx.lineTo(cx-gap, cy); ctx.stroke()
+        ctx.beginPath(); ctx.moveTo(cx+gap, cy); ctx.lineTo(cx+gap+len, cy); ctx.stroke()
+        ctx.beginPath(); ctx.moveTo(cx, cy-gap-len); ctx.lineTo(cx, cy-gap); ctx.stroke()
+        ctx.beginPath(); ctx.moveTo(cx, cy+gap); ctx.lineTo(cx, cy+gap+len); ctx.stroke()
+        ctx.beginPath(); ctx.arc(cx, cy, thk + 2, 0, Math.PI * 2); ctx.fill()
+      } else if (S.style === 'dot') {
+        ctx.beginPath(); ctx.arc(cx, cy, thk * 2, 0, Math.PI * 2); ctx.fill()
+      } else if (S.style === 'circle') {
+        ctx.beginPath(); ctx.arc(cx, cy, len + gap, 0, Math.PI * 2); ctx.stroke()
+        ctx.beginPath(); ctx.arc(cx, cy, thk, 0, Math.PI * 2); ctx.fill()
+      } else if (S.style === 'corner') {
+        const g = gap + len
+        ctx.lineCap = 'square'
+        ctx.beginPath(); ctx.moveTo(cx-g, cy-g+len); ctx.lineTo(cx-g, cy-g); ctx.lineTo(cx-g+len, cy-g); ctx.stroke()
+        ctx.beginPath(); ctx.moveTo(cx+g, cy-g+len); ctx.lineTo(cx+g, cy-g); ctx.lineTo(cx+g-len, cy-g); ctx.stroke()
+        ctx.beginPath(); ctx.moveTo(cx-g, cy+g-len); ctx.lineTo(cx-g, cy+g); ctx.lineTo(cx-g+len, cy+g); ctx.stroke()
+        ctx.beginPath(); ctx.moveTo(cx+g, cy+g-len); ctx.lineTo(cx+g, cy+g); ctx.lineTo(cx+g-len, cy+g); ctx.stroke()
+        ctx.beginPath(); ctx.arc(cx, cy, thk, 0, Math.PI * 2); ctx.fill()
+      } else if (S.style === 'star') {
+        const angles = [270, 30, 150]
+        angles.forEach(deg => {
+          const rad = deg * Math.PI / 180
+          ctx.beginPath()
+          ctx.moveTo(cx + Math.cos(rad) * gap, cy + Math.sin(rad) * gap)
+          ctx.lineTo(cx + Math.cos(rad) * (gap + len * 3), cy + Math.sin(rad) * (gap + len * 3))
+          ctx.stroke()
+        })
+        ctx.beginPath(); ctx.arc(cx, cy, thk * 2, 0, Math.PI * 2); ctx.fill()
+      }
+    }
+
+    function syncUI() {
+      document.getElementById('s-gap').value = S.gap;       document.getElementById('v-gap').textContent = S.gap
+      document.getElementById('s-len').value = S.length;    document.getElementById('v-len').textContent = S.length
+      document.getElementById('s-thk').value = S.thickness; document.getElementById('v-thk').textContent = S.thickness
+      document.getElementById('s-opa').value = S.opacity;   document.getElementById('v-opa').textContent = S.opacity + '%'
+      document.getElementById('colorPicker').value = S.color
+      document.querySelectorAll('.stab').forEach(t => {
+        const match = t.getAttribute('onclick').match(/setStyle\('(\w+)'/)
+        t.classList.toggle('active', match && match[1] === S.style)
+      })
+      document.querySelectorAll('.sw').forEach(sw => {
+        sw.classList.toggle('active', sw.style.background === S.color || sw.style.backgroundColor === S.color)
+      })
+    }
+
+    function readSliders() {
+      S.gap       = parseInt(document.getElementById('s-gap').value, 10)
+      S.length    = parseInt(document.getElementById('s-len').value, 10)
+      S.thickness = parseInt(document.getElementById('s-thk').value, 10)
+      S.opacity   = parseInt(document.getElementById('s-opa').value, 10)
+    }
+
+    function send() {
+      ipcRenderer.send('settings-update', {
+        style:     S.style,
+        color:     S.color,
+        gap:       parseInt(S.gap, 10),
+        length:    parseInt(S.length, 10),
+        thickness: parseInt(S.thickness, 10),
+        opacity:   parseInt(S.opacity, 10),
+        visible:   S.visible
+      })
+      draw()
+    }
+
+    function setStyle(s, el) {
+  const savedGap       = parseInt(document.getElementById('s-gap').value, 10)
+  const savedLength    = parseInt(document.getElementById('s-len').value, 10)
+  const savedThickness = parseInt(document.getElementById('s-thk').value, 10)
+  const savedOpacity   = parseInt(document.getElementById('s-opa').value, 10)
+  const savedColor     = S.color
+  const savedVisible   = S.visible
+  S.style     = s
+  S.gap       = savedGap
+  S.length    = savedLength
+  S.thickness = savedThickness
+  S.opacity   = savedOpacity
+  S.color     = savedColor
+  S.visible   = savedVisible
+  document.getElementById('v-gap').textContent = S.gap
+  document.getElementById('v-len').textContent = S.length
+  document.getElementById('v-thk').textContent = S.thickness
+  document.getElementById('v-opa').textContent = S.opacity + '%'
+  document.querySelectorAll('.stab').forEach(t => t.classList.remove('active'))
+  el.classList.add('active')
+  send()
+}
+
+    function setColor(c, el) {
+      S.color = c
+      document.querySelectorAll('.sw').forEach(sw => sw.classList.remove('active'))
+      el.classList.add('active')
+      document.getElementById('colorPicker').value = c
+      send()
+    }
+
+    function setColorCustom(c) {
+      S.color = c
+      document.querySelectorAll('.sw').forEach(sw => sw.classList.remove('active'))
+      send()
+    }
+
+    function upd() {
+      readSliders()
+      document.getElementById('v-gap').textContent = S.gap
+      document.getElementById('v-len').textContent = S.length
+      document.getElementById('v-thk').textContent = S.thickness
+      document.getElementById('v-opa').textContent = S.opacity + '%'
+      send()
+    }
+
+    function toggleCrosshair() {
+      S.visible = !S.visible
+      document.getElementById('toggle').classList.toggle('on', S.visible)
+      send()
+    }
+
+    function applyPreset(p) {
+      S.style     = String(p.style)
+      S.color     = String(p.color)
+      S.gap       = parseInt(p.gap, 10)
+      S.length    = parseInt(p.length, 10)
+      S.thickness = parseInt(p.thickness, 10)
+      S.opacity   = parseInt(p.opacity, 10)
+      syncUI()
+      send()
+    }
+
+    function savePreset() {
+      const name = document.getElementById('preset-name').value.trim()
+      if (!name) return
+      readSliders()
+      ipcRenderer.send('save-preset', { name, ...S })
+      document.getElementById('preset-name').value = ''
+    }
+
+    function loadPreset(p) { applyPreset(p) }
+
+    function deletePreset(index) { ipcRenderer.send('delete-preset', index) }
+
+    function renderPresets(presets) {
+      const list = document.getElementById('presets-list')
+      if (!presets.length) { list.innerHTML = '<div class="no-presets">No saved presets yet</div>'; return }
+      list.innerHTML = presets.map((p, i) => `
+        <div class="preset-item">
+          <div class="preset-info">
+            <div class="preset-name">${p.name}</div>
+            <div class="preset-meta">${p.style} · gap ${p.gap} · len ${p.length} · thk ${p.thickness}</div>
+          </div>
+          <div class="preset-actions">
+            <div class="preset-color-dot" style="background:${p.color}"></div>
+            <button class="btn-load" onclick='loadPreset(${JSON.stringify(p)})'>Load</button>
+            <button class="btn-del" onclick="deletePreset(${i})">Del</button>
+          </div>
+        </div>
+      `).join('')
+    }
+
+    ipcRenderer.on('presets-updated', (e, presets) => renderPresets(presets))
+    ipcRenderer.on('load-preset-from-hotkey', (e, p) => { applyPreset(p) })
+    ipcRenderer.on('toggle-from-hotkey', (e, visible) => {
+      S.visible = visible
+      document.getElementById('toggle').classList.toggle('on', visible)
+    })
+
+    ipcRenderer.send('get-presets')
+    syncUI()
+    draw()
+  </script>
+</body>
+</html>
